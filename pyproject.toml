@@ -1,0 +1,25 @@
+[project]
+name = "nhl-scheduler"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "gShanygin", email = "grrockets@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "aiofiles>=25.1.0",
+    "fastapi>=0.141.1",
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "ruff>=0.16.3",
+    "sqlmodel>=0.0.39",
+    "uvicorn>=0.52.3",
+]
+
+[project.scripts]
+nhl-scheduler = "nhl_scheduler:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
