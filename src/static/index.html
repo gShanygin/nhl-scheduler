@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NHL Engine | Game Day Scoreboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,700;1,700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['"Chakra Petch"', 'sans-serif'],
+          },
+          colors: {
+            ice: {
+              100: '#e0f2fe',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              900: '#0c4a6e',
+            },
+            rink: '#0b1120'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b1120;
+      background-image: 
+        radial-gradient(circle at 50% 0%, #082f49 0%, transparent 40%),
+        radial-gradient(circle at 100% 100%, #0c4a6e 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+    .glass-board {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .ice-scratch {
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 14px,
+        rgba(255, 255, 255, 0.015) 14px,
+        rgba(255, 255, 255, 0.015) 15px
+      );
+    }
+    /* Custom Scrollbar for dropdowns */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #0b1120; }
+    ::-webkit-scrollbar-thumb { background: #0ea5e9; border-radius: 4px; }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-white/10 bg-rink/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded border-2 border-ice-400 flex items-center justify-center shadow-[0_0_10px_rgba(56,189,248,0.5)]">
+          <span class="font-display font-bold italic text-ice-400 leading-none">NHL</span>
+        </div>
+        <span class="font-display font-bold text-xl tracking-wider uppercase text-white drop-shadow-md">
+          Scheduler <span class="text-ice-500">Engine</span>
+        </span>
+      </div>
+      <div id="statusToast" class="text-xs font-bold font-display uppercase tracking-widest text-ice-400">
+        System Ready
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-6 py-8 w-full flex-grow">
+    
+    <!-- Generator Control Panel -->
+    <div class="glass-board rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+      <div class="absolute inset-0 ice-scratch pointer-events-none"></div>
+      
+      <div class="relative z-10 flex-1">
+        <h3 class="text-2xl font-display font-bold text-white uppercase tracking-wide italic">Season Generator</h3>
+        <p class="text-sm text-slate-400 mt-1">Initialize the 82-game algorithm across all 32 franchises.</p>
+      </div>
+      
+      <div class="relative z-10 flex flex-col sm:flex-row items-center gap-6 w-full md:w-auto">
+        <div class="flex flex-col w-full sm:w-auto">
+          <label class="text-[10px] text-ice-400 font-bold uppercase tracking-widest mb-2">Max Games / Day: <span id="capVal" class="text-white text-sm">8</span></label>
+          <input type="range" id="capInput" min="1" max="16" value="8" class="w-full sm:w-48 accent-ice-500 cursor-pointer">
+        </div>
+        <button onclick="generateSchedule()" id="genBtn" class="w-full sm:w-auto bg-ice-500 hover:bg-ice-400 text-rink font-display font-bold italic tracking-widest uppercase px-8 py-3 rounded shadow-[0_0_20px_rgba(14,165,233,0.3)] hover:shadow-[0_0_30px_rgba(14,165,233,0.6)] transition-all active:scale-95">
+          Drop Puck
+        </button>
+      </div>
+    </div>
+
+    <!-- Date Navigator Scoreboard -->
+    <div class="flex flex-col items-center justify-center mb-8 relative">
+      <div class="flex items-center justify-center space-x-4 sm:space-x-8 bg-slate-900/60 p-4 sm:p-6 rounded-2xl glass-board w-full max-w-2xl border-t-4 border-t-ice-500 shadow-2xl">
+        
+        <button onclick="prevDay()" class="p-3 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors active:scale-90">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        
+        <div class="text-center flex-1">
+          <p class="text-[10px] text-ice-500 font-bold tracking-widest uppercase mb-1">League Scoreboard</p>
+          <h2 id="currentDayLabel" class="text-4xl sm:text-5xl font-display font-black text-white italic tracking-wider shadow-black drop-shadow-lg">DAY 1</h2>
+          
+          <div class="mt-3">
+            <select id="daySelect" onchange="jumpToDay(this.value)" class="bg-rink border border-ice-900/50 text-slate-300 font-display font-bold text-xs uppercase tracking-wider rounded px-3 py-1.5 outline-none focus:border-ice-500 cursor-pointer">
+              <option value="1">Select Date...</option>
+            </select>
+          </div>
+        </div>
+
+        <button onclick="nextDay()" class="p-3 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors active:scale-90">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Matchups Grid -->
+    <div id="matchupGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Injected via JS -->
+      <div class="col-span-full text-center py-20 text-slate-500 font-display text-lg uppercase tracking-widest">
+        Loading schedule...
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let allGames = [];
+    let maxDay = 0;
+    let currentDay = 1;
+
+    // UI Listeners
+    document.getElementById('capInput').addEventListener('input', (e) => {
+      document.getElementById('capVal').innerText = e.target.value;
+    });
+
+    function showStatus(msg, isError = false) {
+      const el = document.getElementById('statusToast');
+      el.innerText = msg;
+      el.className = `text-xs font-bold font-display uppercase tracking-widest ${isError ? 'text-rose-500' : 'text-ice-400'}`;
+    }
+
+    async function generateSchedule() {
+      const cap = document.getElementById('capInput').value;
+      const btn = document.getElementById('genBtn');
+      btn.innerText = "SIMULATING...";
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`/schedule/generate?daily_cap=${cap}`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          showStatus(`SYSTEM: ${data.total_games_scheduled} GAMES CREATED`);
+          await loadAllGames(); 
+        } else {
+          showStatus(`ERROR: ${data.detail}`, true);
+        }
+      } catch (err) {
+        showStatus("NETWORK ERROR", true);
+      } finally {
+        btn.innerText = "DROP PUCK";
+        btn.disabled = false;
+      }
+    }
+
+    async function loadAllGames() {
+      try {
+        // Fetch up to max bounds to ensure we get the full season
+        const res = await fetch('/schedule/all?limit=2000');
+        if (res.ok) {
+          allGames = await res.json();
+          if (allGames.length > 0) {
+            maxDay = Math.max(...allGames.map(g => g.game_day));
+            currentDay = 1;
+            populateDropdown();
+            renderScoreboard();
+          } else {
+            document.getElementById('matchupGrid').innerHTML = `
+              <div class="col-span-full text-center py-20 text-slate-500 font-display text-lg uppercase tracking-widest">
+                No schedule found. Generate a season above.
+              </div>`;
+          }
+        }
+      } catch (err) {
+        showStatus("FAILED TO LOAD GAMES", true);
+      }
+    }
+
+    function populateDropdown() {
+      const sel = document.getElementById('daySelect');
+      sel.innerHTML = '';
+      for(let i = 1; i <= maxDay; i++) {
+        sel.innerHTML += `<option value="${i}">JUMP TO DAY ${i}</option>`;
+      }
+    }
+
+    function jumpToDay(val) {
+      const day = parseInt(val);
+      if (day >= 1 && day <= maxDay) {
+        currentDay = day;
+        renderScoreboard();
+      }
+    }
+
+    function prevDay() {
+      if (currentDay > 1) { 
+        currentDay--; 
+        document.getElementById('daySelect').value = currentDay;
+        renderScoreboard(); 
+      }
+    }
+
+    function nextDay() {
+      if (currentDay < maxDay) { 
+        currentDay++; 
+        document.getElementById('daySelect').value = currentDay;
+        renderScoreboard(); 
+      }
+    }
+
+    function renderScoreboard() {
+      document.getElementById('currentDayLabel').innerText = `DAY ${currentDay}`;
+      
+      const gamesToday = allGames.filter(g => g.game_day === currentDay);
+      const container = document.getElementById('matchupGrid');
+      container.innerHTML = '';
+      
+      if (gamesToday.length === 0) {
+         container.innerHTML = `
+          <div class="col-span-full text-center py-20 text-slate-600 font-display text-sm uppercase tracking-widest italic">
+            League-wide Bye Week or Off Day. No matchups scheduled.
+          </div>`;
+         return;
+      }
+      
+      gamesToday.forEach(g => {
+        container.innerHTML += `
+          <div class="glass-board rounded-xl p-5 relative overflow-hidden group hover:bg-white/5 transition-all duration-300">
+            <div class="absolute inset-0 ice-scratch pointer-events-none"></div>
+            
+            <div class="relative z-10 flex items-center justify-between">
+              
+              <!-- Away Team -->
+              <div class="flex-1 text-right pr-4 sm:pr-6 border-r border-slate-700/50">
+                <span class="block text-[10px] sm:text-xs text-slate-400 font-bold tracking-widest uppercase mb-1">Away</span>
+                <span class="block text-lg sm:text-2xl font-display font-bold text-white group-hover:text-ice-100 transition-colors leading-tight">${g.away_team_name}</span>
+              </div>
+              
+              <!-- Center Puck / VS -->
+              <div class="px-3 sm:px-6 flex flex-col items-center justify-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-rink border-2 border-slate-600 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.8)] group-hover:border-ice-500 transition-colors">
+                  <span class="text-slate-400 group-hover:text-ice-400 font-display font-black italic text-xs sm:text-sm">VS</span>
+                </div>
+              </div>
+              
+              <!-- Home Team -->
+              <div class="flex-1 text-left pl-4 sm:pl-6 border-l border-slate-700/50">
+                <span class="block text-[10px] sm:text-xs text-ice-500 font-bold tracking-widest uppercase mb-1">Home</span>
+                <span class="block text-lg sm:text-2xl font-display font-bold text-white group-hover:text-ice-100 transition-colors leading-tight">${g.home_team_name}</span>
+              </div>
+              
+            </div>
+            
+            <!-- Bottom Meta Ribbon -->
+            <div class="mt-5 pt-3 border-t border-white/5 flex justify-between items-center">
+              <span class="text-[10px] text-slate-500 font-display font-bold uppercase tracking-widest">ID: #${g.id}</span>
+              <span class="px-2 py-1 bg-white/5 border border-white/10 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-ice-400">
+                ${g.game_type || 'Regular'} Play
+              </span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // Boot
+    window.onload = loadAllGames;
+  </script>
+</body>
+</html>

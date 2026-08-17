@@ -32,12 +32,12 @@ class Team(SQLModel, table=True):
 
     division: Optional[Division] = Relationship(back_populates="teams")
 
-
 class Game(SQLModel, table=True):
     __tablename__ = "games"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    game_date: date = Field(index=True)
+    game_day: int = Field(index=True)  # <-- The integer Day 1, Day 2 for the algorithm
+    game_date: Optional[date] = Field(default=None, index=True)  # <-- The actual calendar date
     home_team_id: int = Field(foreign_key="teams.id", index=True)
     away_team_id: int = Field(foreign_key="teams.id", index=True)
-    game_type: str
+    game_type: str = Field(default="Regular")

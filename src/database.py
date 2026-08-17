@@ -1,6 +1,21 @@
 from sqlmodel import Session, SQLModel, create_engine, select
 from src.models import Conference, Division, Team
+from sqlmodel import Session, SQLModel, create_engine
+from sqlalchemy import event
 
+sqlite_file_name = "nhl.db"
+sqlite_url = f"sqlite:///{sqlite_file_name}"
+
+# check_same_thread=False is needed for FastAPI
+engine = create_engine(sqlite_url, connect_args={"check_same_thread": False})
+
+# --- Add this block to speed up SQLite writes ---
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
 DATABASE_URL = "sqlite:///./nhl_schedule.db"
 
 # connect_args={"check_same_thread": False} is required for SQLite when accessed across FastAPI threads
